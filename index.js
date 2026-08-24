@@ -200,7 +200,7 @@ app.post('/deploy', async (req, res) => {
     try {
         // ১. Render API থেকে User/Owner ID নেওয়া
         const ownersRes = await axios.get('https://api.render.com/v1/owners', {
-            headers: { 'Authorization': \`Bearer \${renderKey}\` }
+            headers: { 'Authorization': `Bearer ${renderKey}` }
         });
         const ownerId = ownersRes.data[0].owner.id;
 
@@ -208,7 +208,7 @@ app.post('/deploy', async (req, res) => {
         const payload = {
             ownerId: ownerId,
             type: "web_service",
-            name: \`\${botName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-bot\`,
+            name: `${botName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-bot`,
             repo: githubRepo,
             autoDeploy: "yes",
             branch: "main",
@@ -230,38 +230,38 @@ app.post('/deploy', async (req, res) => {
         // ৩. Render API তে কল করে নতুন সার্ভার তৈরি
         const response = await axios.post('https://api.render.com/v1/services', payload, {
             headers: {
-                'Authorization': \`Bearer \${renderKey}\`,
+                'Authorization': `Bearer ${renderKey}`,
                 'Content-Type': 'application/json'
             }
         });
 
-        res.send(\`
+        res.send(`
             <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
                 <h1 style="color: #4ade80; font-size: 2rem;">✅ Deployment Successful!</h1>
-                <p style="margin-top:20px; color:#8a8a8f;">Your bot <strong>\${botName}</strong> is being deployed on Render.</p>
+                <p style="margin-top:20px; color:#8a8a8f;">Your bot <strong>${botName}</strong> is being deployed on Render.</p>
                 <div style="background: #0b0d18; border: 1px solid #333; padding: 20px; border-radius: 10px; max-width: 500px; margin: 20px auto;">
-                    <p><strong>Service Name:</strong> \${response.data.name}</p>
-                    <p><strong>Service URL:</strong> <a href="\${response.data.serviceDetails.url}" style="color: #60a5fa; text-decoration: none;">\${response.data.serviceDetails.url}</a></p>
+                    <p><strong>Service Name:</strong> ${response.data.name}</p>
+                    <p><strong>Service URL:</strong> <a href="${response.data.serviceDetails.url}" style="color: #60a5fa; text-decoration: none;">${response.data.serviceDetails.url}</a></p>
                 </div>
                 <p style="color: #fca5a5;">Please wait 2-3 minutes for Render to finish building the server.</p>
                 <a href="/" style="display: inline-block; margin-top: 30px; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-weight:bold;">Back to Dashboard</a>
             </div>
-        \`);
+        `);
         
     } catch (error) {
         console.error("Deploy Error:", error.response ? error.response.data : error.message);
-        res.status(500).send(\`
+        res.status(500).send(`
             <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
                 <h1 style="color: #f87171; font-size: 2rem;">❌ Deployment Failed!</h1>
                 <div style="background: #0b0d18; border: 1px solid #f87171; color: #fca5a5; padding: 20px; border-radius: 10px; max-width: 600px; margin: 20px auto; text-align:left; overflow:auto;">
-                    <code>\${error.response ? JSON.stringify(error.response.data, null, 2) : error.message}</code>
+                    <code>${error.response ? JSON.stringify(error.response.data, null, 2) : error.message}</code>
                 </div>
                 <a href="/" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-weight:bold;">Go Back</a>
             </div>
-        \`);
+        `);
     }
 });
 
 app.listen(port, () => {
-    console.log(\`Web Server running on port \${port}\`);
+    console.log(`Web Server running on port ${port}`);
 });
