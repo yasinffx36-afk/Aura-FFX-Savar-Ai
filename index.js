@@ -171,11 +171,6 @@ const HTML_TEMPLATE = `
                 <input type="password" name="renderKey" required placeholder="rnd_..." class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">GitHub Repo URL</label>
-                <input type="url" name="githubRepo" required placeholder="https://github.com/YourName/YourRepo" class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-
             <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] mt-4 shadow-lg">
                 Deploy Bot 🚀
             </button>
@@ -191,9 +186,10 @@ app.get('/', (req, res) => {
 });
 
 app.post('/deploy', async (req, res) => {
-    const { botName, telegramKey, geminiKey, renderKey, githubRepo } = req.body;
+    const { botName, telegramKey, geminiKey, renderKey } = req.body;
+    const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
     
-    if (!botName || !telegramKey || !geminiKey || !renderKey || !githubRepo) {
+    if (!botName || !telegramKey || !geminiKey || !renderKey) {
         return res.status(400).send("<h2 style='color:white; text-align:center;'>All fields are required! <a href='/' style='color:#3b82f6;'>Go Back</a></h2>");
     }
 
@@ -240,8 +236,8 @@ app.post('/deploy', async (req, res) => {
                 <h1 style="color: #4ade80; font-size: 2rem;">✅ Deployment Successful!</h1>
                 <p style="margin-top:20px; color:#8a8a8f;">Your bot <strong>${botName}</strong> is being deployed on Render.</p>
                 <div style="background: #0b0d18; border: 1px solid #333; padding: 20px; border-radius: 10px; max-width: 500px; margin: 20px auto;">
-                    <p><strong>Service Name:</strong> ${response.data.name}</p>
-                    <p><strong>Service URL:</strong> <a href="${response.data.serviceDetails.url}" style="color: #60a5fa; text-decoration: none;">${response.data.serviceDetails.url}</a></p>
+                    <p><strong>Service Name:</strong> ${response.data.service.name}</p>
+                    <p><strong>Service URL:</strong> <a href="${response.data.service.serviceDetails.url}" style="color: #60a5fa; text-decoration: none;">${response.data.service.serviceDetails.url}</a></p>
                 </div>
                 <p style="color: #fca5a5;">Please wait 2-3 minutes for Render to finish building the server.</p>
                 <a href="/" style="display: inline-block; margin-top: 30px; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-weight:bold;">Back to Dashboard</a>
