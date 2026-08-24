@@ -18,7 +18,7 @@ if (isBotMode) {
     const BOT_TOKEN = process.env.BOT_TOKEN;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const BOT_NAME = process.env.BOT_NAME || "YASIN"; // ডিফল্ট নাম YASIN
-    const GEMINI_MODEL = 'gemini-1.5-flash';
+    const GEMINI_MODEL = 'gemini-3.5-flash';
 
     const bot = new TelegramBot(BOT_TOKEN, { polling: true });
     console.log(`${BOT_NAME} Bot started...`);
@@ -66,7 +66,7 @@ if (isBotMode) {
             if (response.data && response.data.candidates && response.data.candidates.length > 0) {
                 return response.data.candidates[0].content.parts[0].text;
             }
-            return `API Error: ${error.response ? JSON.stringify(error.response.data.error.message || error.response.status) : error.message}`;
+            return `API Error: No response candidates found.`;
         } catch (error) {
             console.error("Gemini API Error:", error.response ? JSON.stringify(error.response.data) : error.message);
             return `API Error: ${error.response ? (error.response.data.error?.message || error.response.status) : error.message}`;
