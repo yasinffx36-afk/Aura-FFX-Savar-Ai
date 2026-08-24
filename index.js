@@ -7,6 +7,17 @@ const port = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Add Manual CORS middleware
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 // চেক করা হচ্ছে এটি কোন মোডে রান হবে (টেলিগ্রাম টোকেন থাকলে বট রান হবে, নাহলে শুধু ড্যাশবোর্ড)
 const isBotMode = !!process.env.BOT_TOKEN; 
 
@@ -128,116 +139,49 @@ if (isBotMode) {
     console.log("Starting in CONTROL SERVER MODE...");
 }
 
-const HTML_TEMPLATE = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bot Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #030407; color: white; font-family: 'Inter', sans-serif; }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #3b82f6;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="bg-[#0b0d18] border border-white/10 p-8 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none"></div>
-        <h1 class="text-3xl font-bold mb-2 text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent relative z-10">Bot Generator</h1>
-        <p class="text-[#8a8a8f] text-sm text-center mb-6 relative z-10">Deploy a new AI Telegram Bot instantly</p>
-        
-        <form id="deployForm" action="/deploy" method="POST" class="space-y-4 relative z-10">
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">AI Name (Uppercase)</label>
-                <input type="text" name="botName" required placeholder="e.g. YASIN" oninput="this.value = this.value.toUpperCase()" class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Render Username (Lowercase)</label>
-                <input type="text" name="botUsername" required placeholder="e.g. yasinbot" pattern="[a-z0-9-]+" title="Only lowercase letters, numbers, and hyphens" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '')" class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Telegram Bot API Key</label>
-                <input type="text" name="telegramKey" required placeholder="8670679898:AAHK..." class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Google Gemini API Key</label>
-                <input type="text" name="geminiKey" required placeholder="AQ.Ab8RN6LU..." class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Render API Key</label>
-                <input type="password" name="renderKey" required placeholder="rnd_..." class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-
-            <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] mt-4 shadow-lg flex justify-center items-center">
-                <span>Deploy Bot 🚀</span>
-            </button>
-        </form>
-        
-        <!-- Client-side script to show loading indicator upon form submission -->
-        <script>
-            document.getElementById('deployForm').addEventListener('submit', function() {
-                var btn = document.getElementById('submitBtn');
-                btn.innerHTML = '<div class="spinner"></div>';
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-                btn.style.pointerEvents = 'none';
-            });
-        </script>
-    </div>
-</body>
-</html>
-`;
-
 app.get('/', (req, res) => {
-    if (isBotMode) {
-        res.send(`<div style="background-color: #030407; color: #4ade80; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;"><h1>🚀 Bot is Running Active</h1></div>`);
-    } else {
-        res.send(HTML_TEMPLATE);
-    }
+    res.send(`<div style="background-color: #030407; color: #4ade80; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;"><h1>🚀 Online</h1></div>`);
 });
 
-
 // ==========================================
-// API ENDPOINT FOR BOT DEPLOYMENT
+// QUEUE SYSTEM & DEPLOYMENT API
 // ==========================================
 
-app.post('/deploy', async (req, res) => {
-    // No password required for deployment
-    const botName = req.body.botName?.trim();
-    const botUsername = req.body.botUsername?.trim();
-    const telegramKey = req.body.telegramKey?.trim();
-    const geminiKey = req.body.geminiKey?.trim();
-    const renderKey = req.body.renderKey?.trim();
-    const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
-    
-    if (!botName || !botUsername || !telegramKey || !geminiKey || !renderKey) {
-        return res.status(400).send(`
-            <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
-                <h2 style='color:white; text-align:center;'>All fields are required!</h2><br><a href='/' style='color:#3b82f6;'>Go Back</a>
-            </div>
-        `);
+const jobQueue = [];
+const jobs = {};
+let activeDeployments = 0;
+const MAX_CONCURRENT_DEPLOYMENTS = 10;
+
+// Background worker
+setInterval(async () => {
+    if (jobQueue.length > 0 && activeDeployments < MAX_CONCURRENT_DEPLOYMENTS) {
+        const jobId = jobQueue.shift();
+        if (jobs[jobId] && jobs[jobId].status === 'queued') {
+            processJob(jobId);
+        }
     }
+    
+    // Update positions for remaining queued jobs
+    jobQueue.forEach((id, index) => {
+        if (jobs[id] && jobs[id].status === 'queued') {
+            jobs[id].position = index + 1;
+        }
+    });
+}, 1000);
+
+async function processJob(jobId) {
+    activeDeployments++;
+    const job = jobs[jobId];
+    job.status = 'processing';
+
+    const { botName, botUsername, telegramKey, geminiKey, renderKey, githubRepo } = job.data;
 
     try {
-        // 1. Render API থেকে User/Owner ID নেওয়া
         const ownersRes = await axios.get('https://api.render.com/v1/owners', {
             headers: { 'Authorization': `Bearer ${renderKey}` }
         });
         const ownerId = ownersRes.data[0].owner.id;
 
-        // 2. নতুন Web Service তৈরির পে-লোড
         const payload = {
             ownerId: ownerId,
             type: "web_service",
@@ -260,7 +204,6 @@ app.post('/deploy', async (req, res) => {
             }
         };
 
-        // 3. Render API তে কল করে নতুন সার্ভার তৈরি (নাম কনফ্লিক্ট হলে 3 এবং 6 যুক্ত করবে)
         let response;
         let suffixSeq = ['3', '6', '3', '6', '3', '6', '3', '6'];
         let suffixIndex = 0;
@@ -279,7 +222,6 @@ app.post('/deploy', async (req, res) => {
                 break;
             } catch (error) {
                 lastError = error;
-                // If Render says bad request (usually name taken), append suffix and retry
                 if (error.response && error.response.status === 400 && i < suffixSeq.length) {
                     payload.name += suffixSeq[suffixIndex];
                     suffixIndex++;
@@ -293,34 +235,57 @@ app.post('/deploy', async (req, res) => {
             throw lastError;
         }
 
-
-        res.send(`
-            <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
-                <h1 style="color: #4ade80; font-size: 2rem;">✅ Deployment Successful!</h1>
-                <p style="margin-top:20px; color:#8a8a8f;">Your bot <strong>${botName}</strong> is being deployed on Render.</p>
-                <div style="background: #0b0d18; border: 1px solid #333; padding: 20px; border-radius: 10px; max-width: 500px; margin: 20px auto;">
-                    <p><strong>Service Name:</strong> ${response.data.service.name}</p>
-                    <p><strong>Service URL:</strong> <a href="${response.data.service.serviceDetails.url}" style="color: #60a5fa; text-decoration: none;">${response.data.service.serviceDetails.url}</a></p>
-                </div>
-                <p style="color: #fca5a5;">Please wait 2-3 minutes for Render to finish building the server.</p>
-                <a href="/" style="display: inline-block; margin-top: 30px; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-weight:bold;">Back to Dashboard</a>
-            </div>
-        `);
-        
+        job.status = 'completed';
+        job.service = { name: response.data.service.name, url: response.data.service.serviceDetails.url };
     } catch (error) {
         console.error("Deploy Error:", error.response ? error.response.data : error.message);
-        res.status(500).send(`
-            <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
-                <h1 style="color: #f87171; font-size: 2rem;">❌ Deployment Failed!</h1>
-                <div style="background: #0b0d18; border: 1px solid #f87171; color: #fca5a5; padding: 20px; border-radius: 10px; max-width: 600px; margin: 20px auto; text-align:left; overflow:auto;">
-                    <code>${error.response ? JSON.stringify(error.response.data, null, 2) : error.message}</code>
-                </div>
-                <a href="/" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-weight:bold;">Go Back</a>
-            </div>
-        `);
+        job.status = 'failed';
+        job.error = error.response ? (error.response.data.message || JSON.stringify(error.response.data)) : error.message;
+    } finally {
+        activeDeployments--;
     }
+}
+
+app.post('/deploy', (req, res) => {
+    const botName = req.body.botName?.trim();
+    const botUsername = req.body.botUsername?.trim();
+    const telegramKey = req.body.telegramKey?.trim();
+    const geminiKey = req.body.geminiKey?.trim();
+    const renderKey = req.body.renderKey?.trim();
+    const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
+    
+    if (!botName || !botUsername || !telegramKey || !geminiKey || !renderKey) {
+        return res.status(400).json({ error: "All fields are required!" });
+    }
+
+    const jobId = Date.now().toString() + Math.random().toString(36).substring(2);
+    
+    jobs[jobId] = {
+        id: jobId,
+        status: 'queued',
+        position: jobQueue.length + 1,
+        data: { botName, botUsername, telegramKey, geminiKey, renderKey, githubRepo }
+    };
+    
+    jobQueue.push(jobId);
+    
+    res.json({ jobId, position: jobs[jobId].position });
 });
 
+app.get('/status/:jobId', (req, res) => {
+    const job = jobs[req.params.jobId];
+    if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+    }
+    // Only send non-sensitive data
+    res.json({
+        id: job.id,
+        status: job.status,
+        position: job.position,
+        service: job.service,
+        error: job.error
+    });
+});
 
 app.listen(port, () => {
     console.log(`Web Server running on port ${port}`);
