@@ -7,7 +7,6 @@ const port = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Add Manual CORS middleware
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -18,21 +17,17 @@ app.use((req, res, next) => {
     next();
 });
 
-// চেক করা হচ্ছে এটি কোন মোডে রান হবে (টেলিগ্রাম টোকেন থাকলে বট রান হবে, নাহলে শুধু ড্যাশবোর্ড)
 const isBotMode = !!process.env.BOT_TOKEN; 
 
 if (isBotMode) {
-    console.log("Starting in BOT MODE...");
     const TelegramBot = require('node-telegram-bot-api');
     
-    // Environment Variables থেকে API Key নেওয়া হচ্ছে
     const BOT_TOKEN = process.env.BOT_TOKEN;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    const BOT_NAME = process.env.BOT_NAME || "YASIN"; // ডিফল্ট নাম YASIN
+    const BOT_NAME = process.env.BOT_NAME || "YASIN";
     const GEMINI_MODEL = 'gemini-3.5-flash';
 
     const bot = new TelegramBot(BOT_TOKEN, { polling: true });
-    console.log(`${BOT_NAME} Bot started...`);
 
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -65,7 +60,6 @@ if (isBotMode) {
 
     async function getGeminiResponse(text) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-        // BOT_NAME ভ্যারিয়েবল ব্যবহার করা হচ্ছে
         const systemPrompt = `You are ${BOT_NAME}, the most advanced, powerful, and helpful AI assistant. You must always provide 100% correct, factual, and highly accurate answers to everything the user asks. For coding questions, provide robust, best-practice solutions. You must give maximum effort, ensuring absolutely accurate information and the best output for every user request.`;
         
         const payload = {
@@ -79,12 +73,10 @@ if (isBotMode) {
             }
             return `API Error: No response candidates found.`;
         } catch (error) {
-            console.error("Gemini API Error:", error.response ? JSON.stringify(error.response.data) : error.message);
             return `API Error: ${error.response ? (error.response.data.error?.message || error.response.status) : error.message}`;
         }
     }
 
-    // /p কমান্ড
     bot.onText(/^\/(p|picture)(?:\s+(.+))?$/i, async (msg, match) => {
         const chatId = msg.chat.id;
         const prompt = match[2];
@@ -108,11 +100,10 @@ if (isBotMode) {
             await bot.sendPhoto(chatId, imageUrl);
             if (loadMsgId) await bot.deleteMessage(chatId, loadMsgId).catch(()=>{});
         } catch (error) {
-            console.error("Image sending error:", error);
+            // silent catch
         }
     });
 
-    // টেক্সট কমান্ড
     bot.on('message', async (msg) => {
         const chatId = msg.chat.id;
         const text = msg.text;
@@ -131,12 +122,9 @@ if (isBotMode) {
                 await bot.sendMessage(chatId, reply, { parse_mode: "Markdown" }).catch(e => bot.sendMessage(chatId, reply));
             }
         } catch (error) {
-            console.error("Error sending text reply:", error);
+            // silent catch
         }
     });
-
-} else {
-    console.log("Starting in CONTROL SERVER MODE...");
 }
 
 app.get('/', (req, res) => {
@@ -147,7 +135,7 @@ app.get('/', (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Bot Status</title>
+            <title>Status</title>
             <script src="https://cdn.tailwindcss.com"></script>
             <style>
                 body { background-color: #030407; font-family: 'Inter', sans-serif; color: white; }
@@ -162,7 +150,7 @@ app.get('/', (req, res) => {
                     <div class="w-6 h-6 rounded-full bg-green-500 relative z-10"></div>
                 </div>
                 <h1 class="text-3xl font-bold mb-3 tracking-tight text-white/90">Bot is Active</h1>
-                <p class="text-gray-400 text-sm leading-relaxed">Your AI assistant is successfully running and connected to Telegram. It is ready to process messages.</p>
+                <p class="text-gray-400 text-sm leading-relaxed">System is running optimally.</p>
             </div>
         </body>
         </html>
@@ -174,22 +162,22 @@ app.get('/', (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>API Server Status</title>
+            <title>Status</title>
             <script src="https://cdn.tailwindcss.com"></script>
             <style>
                 body { background-color: #030407; font-family: 'Inter', sans-serif; color: white; }
-                .glow { box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); }
+                .glow { box-shadow: 0 0 30px rgba(74, 222, 128, 0.15); }
             </style>
         </head>
         <body class="min-h-screen flex items-center justify-center p-4">
             <div class="bg-[#0b0d18] border border-white/5 p-10 rounded-2xl max-w-md w-full text-center glow relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-500/10 mb-6 relative">
-                    <div class="w-6 h-6 rounded-full bg-blue-500 animate-ping absolute"></div>
-                    <div class="w-6 h-6 rounded-full bg-blue-500 relative z-10"></div>
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-green-600"></div>
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 mb-6 relative">
+                    <div class="w-6 h-6 rounded-full bg-green-400 animate-ping absolute"></div>
+                    <div class="w-6 h-6 rounded-full bg-green-500 relative z-10"></div>
                 </div>
-                <h1 class="text-3xl font-bold mb-3 tracking-tight text-white/90">API Operational</h1>
-                <p class="text-gray-400 text-sm leading-relaxed">The backend API is currently online. Please use the Desktop Client (SSAT) to deploy new bots.</p>
+                <h1 class="text-3xl font-bold mb-3 tracking-tight text-white/90">Online</h1>
+                <p class="text-gray-400 text-sm leading-relaxed">System is running optimally.</p>
             </div>
         </body>
         </html>
@@ -197,16 +185,11 @@ app.get('/', (req, res) => {
     }
 });
 
-// ==========================================
-// QUEUE SYSTEM & DEPLOYMENT API
-// ==========================================
-
 const jobQueue = [];
 const jobs = {};
 let activeDeployments = 0;
 const MAX_CONCURRENT_DEPLOYMENTS = 10;
 
-// Background worker
 setInterval(async () => {
     if (jobQueue.length > 0 && activeDeployments < MAX_CONCURRENT_DEPLOYMENTS) {
         const jobId = jobQueue.shift();
@@ -215,7 +198,6 @@ setInterval(async () => {
         }
     }
     
-    // Update positions for remaining queued jobs
     jobQueue.forEach((id, index) => {
         if (jobs[id] && jobs[id].status === 'queued') {
             jobs[id].position = index + 1;
@@ -292,7 +274,6 @@ async function processJob(jobId) {
         job.status = 'completed';
         job.service = { name: response.data.service.name, url: response.data.service.serviceDetails.url };
     } catch (error) {
-        console.error("Deploy Error:", error.response ? error.response.data : error.message);
         job.status = 'failed';
         job.error = error.response ? (error.response.data.message || JSON.stringify(error.response.data)) : error.message;
     } finally {
@@ -309,7 +290,7 @@ app.post('/deploy', (req, res) => {
     const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
     
     if (!botName || !botUsername || !telegramKey || !geminiKey || !renderKey) {
-        return res.status(400).json({ error: "All fields are required!" });
+        return res.status(400).json({ error: "Invalid parameters" });
     }
 
     const jobId = Date.now().toString() + Math.random().toString(36).substring(2);
@@ -329,9 +310,8 @@ app.post('/deploy', (req, res) => {
 app.get('/status/:jobId', (req, res) => {
     const job = jobs[req.params.jobId];
     if (!job) {
-        return res.status(404).json({ error: "Job not found" });
+        return res.status(404).json({ error: "Not found" });
     }
-    // Only send non-sensitive data
     res.json({
         id: job.id,
         status: job.status,
@@ -341,6 +321,4 @@ app.get('/status/:jobId', (req, res) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Web Server running on port ${port}`);
-});
+app.listen(port);
