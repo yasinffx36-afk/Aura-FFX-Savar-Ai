@@ -140,7 +140,61 @@ if (isBotMode) {
 }
 
 app.get('/', (req, res) => {
-    res.send(`<div style="background-color: #030407; color: #4ade80; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;"><h1>🚀 Online</h1></div>`);
+    if (isBotMode) {
+        res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Bot Status</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                body { background-color: #030407; font-family: 'Inter', sans-serif; color: white; }
+                .glow { box-shadow: 0 0 30px rgba(74, 222, 128, 0.15); }
+            </style>
+        </head>
+        <body class="min-h-screen flex items-center justify-center p-4">
+            <div class="bg-[#0b0d18] border border-white/5 p-10 rounded-2xl max-w-md w-full text-center glow relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-600"></div>
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 mb-6 relative">
+                    <div class="w-6 h-6 rounded-full bg-green-400 animate-ping absolute"></div>
+                    <div class="w-6 h-6 rounded-full bg-green-500 relative z-10"></div>
+                </div>
+                <h1 class="text-3xl font-bold mb-3 tracking-tight text-white/90">Bot is Active</h1>
+                <p class="text-gray-400 text-sm leading-relaxed">Your AI assistant is successfully running and connected to Telegram. It is ready to process messages.</p>
+            </div>
+        </body>
+        </html>
+        `);
+    } else {
+        res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>API Server Status</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                body { background-color: #030407; font-family: 'Inter', sans-serif; color: white; }
+                .glow { box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); }
+            </style>
+        </head>
+        <body class="min-h-screen flex items-center justify-center p-4">
+            <div class="bg-[#0b0d18] border border-white/5 p-10 rounded-2xl max-w-md w-full text-center glow relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-500/10 mb-6 relative">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 animate-ping absolute"></div>
+                    <div class="w-6 h-6 rounded-full bg-blue-500 relative z-10"></div>
+                </div>
+                <h1 class="text-3xl font-bold mb-3 tracking-tight text-white/90">API Operational</h1>
+                <p class="text-gray-400 text-sm leading-relaxed">The backend API is currently online. Please use the Desktop Client (SSAT) to deploy new bots.</p>
+            </div>
+        </body>
+        </html>
+        `);
+    }
 });
 
 // ==========================================
