@@ -66,10 +66,10 @@ if (isBotMode) {
             if (response.data && response.data.candidates && response.data.candidates.length > 0) {
                 return response.data.candidates[0].content.parts[0].text;
             }
-            return "Error";
+            return `API Error: ${error.response ? JSON.stringify(error.response.data.error.message || error.response.status) : error.message}`;
         } catch (error) {
-            console.error("Gemini API Error:", error.message);
-            return "Error";
+            console.error("Gemini API Error:", error.response ? JSON.stringify(error.response.data) : error.message);
+            return `API Error: ${error.response ? (error.response.data.error?.message || error.response.status) : error.message}`;
         }
     }
 
