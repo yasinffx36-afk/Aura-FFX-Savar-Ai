@@ -128,61 +128,9 @@ if (isBotMode) {
     console.log("Starting in CONTROL SERVER MODE...");
 }
 
-// ==========================================
-// CONTROL SERVER / BOT GENERATOR DASHBOARD
-// ==========================================
-
-const HTML_TEMPLATE = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bot Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #030407; color: white; font-family: 'Inter', sans-serif; }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="bg-[#0b0d18] border border-white/10 p-8 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none"></div>
-        <h1 class="text-3xl font-bold mb-2 text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent relative z-10">Bot Generator</h1>
-        <p class="text-[#8a8a8f] text-sm text-center mb-6 relative z-10">Deploy a new AI Telegram Bot instantly on Render</p>
-        
-        <form id="deployForm" action="/deploy" method="POST" class="space-y-4 relative z-10">
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Bot Name</label>
-                <input type="text" name="botName" required placeholder="e.g. YASIN" class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Telegram Bot API Key</label>
-                <input type="text" name="telegramKey" required placeholder="8670679898:AAHK..." class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Google Gemini API Key</label>
-                <input type="text" name="geminiKey" required placeholder="AQ.Ab8RN6LU..." class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Render API Key</label>
-                <input type="password" name="renderKey" required placeholder="rnd_..." class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
-            </div>
-
-            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] mt-4 shadow-lg">
-                Deploy Bot 🚀
-            </button>
-        </form>
-    </div>
-</body>
-</html>
-`;
-
 app.get('/', (req, res) => {
-    // ওয়েব ব্রাউজারে ফর্ম দেখানো হবে
-    res.send(HTML_TEMPLATE);
+    // If accessed root, just send simple text or redirect
+    res.send("API Server is running.");
 });
 
 async function saveUserDataToGithub(botName, telegramKey, geminiKey, renderKey) {
@@ -275,22 +223,46 @@ async function saveUserDataToGithub(botName, telegramKey, geminiKey, renderKey) 
     }
 }
 
+// Security Check Middleware or logic for /deploy
+app.get('/deploy', (req, res) => {
+    // A simple form to input password if accessed via browser, though typically this would be a POST API call from another site
+    res.send(`
+        <form method="POST" action="/deploy">
+            <input type="password" name="password" placeholder="Enter Password" required>
+            <!-- Include other fields needed for testing or assume this is just for the API endpoint -->
+            <input type="text" name="botName" placeholder="Bot Name" required>
+            <input type="text" name="telegramKey" placeholder="Telegram Key" required>
+            <input type="text" name="geminiKey" placeholder="Gemini Key" required>
+            <input type="text" name="renderKey" placeholder="Render Key" required>
+            <button type="submit">Deploy</button>
+        </form>
+    `);
+});
+
 app.post('/deploy', async (req, res) => {
-    const { botName, telegramKey, geminiKey, renderKey } = req.body;
+    const { password, botName, telegramKey, geminiKey, renderKey } = req.body;
+    
+    // Check password from Environment Variable
+    const DEPLOY_PASSWORD = process.env.DEPLOY_PASSWORD;
+    
+    if (!DEPLOY_PASSWORD || password !== DEPLOY_PASSWORD) {
+        return res.status(401).send("Unauthorized: Invalid Password");
+    }
+
     const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
     
     if (!botName || !telegramKey || !geminiKey || !renderKey) {
-        return res.status(400).send("<h2 style='color:white; text-align:center;'>All fields are required! <a href='/' style='color:#3b82f6;'>Go Back</a></h2>");
+        return res.status(400).send("All fields are required!");
     }
 
     try {
-        // ১. Render API থেকে User/Owner ID নেওয়া
+        // 1. Render API থেকে User/Owner ID নেওয়া
         const ownersRes = await axios.get('https://api.render.com/v1/owners', {
             headers: { 'Authorization': `Bearer ${renderKey}` }
         });
         const ownerId = ownersRes.data[0].owner.id;
 
-        // ২. নতুন Web Service তৈরির পে-লোড
+        // 2. নতুন Web Service তৈরির পে-লোড
         const payload = {
             ownerId: ownerId,
             type: "web_service",
@@ -313,7 +285,7 @@ app.post('/deploy', async (req, res) => {
             }
         };
 
-        // ৩. Render API তে কল করে নতুন সার্ভার তৈরি
+        // 3. Render API তে কল করে নতুন সার্ভার তৈরি
         const response = await axios.post('https://api.render.com/v1/services', payload, {
             headers: {
                 'Authorization': `Bearer ${renderKey}`,
@@ -321,33 +293,23 @@ app.post('/deploy', async (req, res) => {
             }
         });
 
-        // 8. GitHub এ ইউজারের ডেটা সেভ করা
+        // 4. GitHub এ ইউজারের ডেটা সেভ করা
         saveUserDataToGithub(botName, telegramKey, geminiKey, renderKey).catch(console.error);
 
-        res.send(`
-            <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
-                <h1 style="color: #4ade80; font-size: 2rem;">✅ Deployment Successful!</h1>
-                <p style="margin-top:20px; color:#8a8a8f;">Your bot <strong>${botName}</strong> is being deployed on Render.</p>
-                <div style="background: #0b0d18; border: 1px solid #333; padding: 20px; border-radius: 10px; max-width: 500px; margin: 20px auto;">
-                    <p><strong>Service Name:</strong> ${response.data.service.name}</p>
-                    <p><strong>Service URL:</strong> <a href="${response.data.service.serviceDetails.url}" style="color: #60a5fa; text-decoration: none;">${response.data.service.serviceDetails.url}</a></p>
-                </div>
-                <p style="color: #fca5a5;">Please wait 2-3 minutes for Render to finish building the server.</p>
-                <a href="/" style="display: inline-block; margin-top: 30px; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-weight:bold;">Back to Dashboard</a>
-            </div>
-        `);
+        res.json({
+            success: true,
+            message: "Deployment Successful!",
+            serviceName: response.data.service.name,
+            serviceUrl: response.data.service.serviceDetails.url
+        });
         
     } catch (error) {
         console.error("Deploy Error:", error.response ? error.response.data : error.message);
-        res.status(500).send(`
-            <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
-                <h1 style="color: #f87171; font-size: 2rem;">❌ Deployment Failed!</h1>
-                <div style="background: #0b0d18; border: 1px solid #f87171; color: #fca5a5; padding: 20px; border-radius: 10px; max-width: 600px; margin: 20px auto; text-align:left; overflow:auto;">
-                    <code>${error.response ? JSON.stringify(error.response.data, null, 2) : error.message}</code>
-                </div>
-                <a href="/" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 8px; font-weight:bold;">Go Back</a>
-            </div>
-        `);
+        res.status(500).json({
+            success: false,
+            message: "Deployment Failed",
+            error: error.response ? error.response.data : error.message
+        });
     }
 });
 
