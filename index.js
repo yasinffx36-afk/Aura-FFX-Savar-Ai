@@ -157,8 +157,13 @@ const HTML_TEMPLATE = `
         
         <form id="deployForm" action="/deploy" method="POST" class="space-y-4 relative z-10">
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Bot Name</label>
-                <input type="text" name="botName" required placeholder="e.g. YASIN" class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+                <label class="block text-sm font-medium text-gray-300 mb-1">AI Name (Uppercase)</label>
+                <input type="text" name="botName" required placeholder="e.g. YASIN" oninput="this.value = this.value.toUpperCase()" class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Render Username (Lowercase)</label>
+                <input type="text" name="botUsername" required placeholder="e.g. yasinbot" pattern="[a-z0-9-]+" title="Only lowercase letters, numbers, and hyphens" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '')" class="w-full bg-[#161824] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
             </div>
             
             <div>
@@ -211,12 +216,13 @@ app.get('/', (req, res) => {
 app.post('/deploy', async (req, res) => {
     // No password required for deployment
     const botName = req.body.botName?.trim();
+    const botUsername = req.body.botUsername?.trim();
     const telegramKey = req.body.telegramKey?.trim();
     const geminiKey = req.body.geminiKey?.trim();
     const renderKey = req.body.renderKey?.trim();
     const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
     
-    if (!botName || !telegramKey || !geminiKey || !renderKey) {
+    if (!botName || !botUsername || !telegramKey || !geminiKey || !renderKey) {
         return res.status(400).send(`
             <div style="background-color: #030407; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;">
                 <h2 style='color:white; text-align:center;'>All fields are required!</h2><br><a href='/' style='color:#3b82f6;'>Go Back</a>
@@ -235,7 +241,7 @@ app.post('/deploy', async (req, res) => {
         const payload = {
             ownerId: ownerId,
             type: "web_service",
-            name: `${botName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-bot`,
+            name: botUsername.toLowerCase().replace(/[^a-z0-9-]/g, ''),
             repo: githubRepo,
             autoDeploy: "yes",
             branch: "main",
@@ -254,13 +260,38 @@ app.post('/deploy', async (req, res) => {
             }
         };
 
-        // 3. Render API তে কল করে নতুন সার্ভার তৈরি
-        const response = await axios.post('https://api.render.com/v1/services', payload, {
-            headers: {
-                'Authorization': `Bearer ${renderKey}`,
-                'Content-Type': 'application/json'
+        // 3. Render API তে কল করে নতুন সার্ভার তৈরি (নাম কনফ্লিক্ট হলে 3 এবং 6 যুক্ত করবে)
+        let response;
+        let suffixSeq = ['3', '6', '3', '6', '3', '6', '3', '6'];
+        let suffixIndex = 0;
+        let success = false;
+        let lastError;
+
+        for (let i = 0; i <= suffixSeq.length; i++) {
+            try {
+                response = await axios.post('https://api.render.com/v1/services', payload, {
+                    headers: {
+                        'Authorization': `Bearer ${renderKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                success = true;
+                break;
+            } catch (error) {
+                lastError = error;
+                // If Render says bad request (usually name taken), append suffix and retry
+                if (error.response && error.response.status === 400 && i < suffixSeq.length) {
+                    payload.name += suffixSeq[suffixIndex];
+                    suffixIndex++;
+                } else {
+                    break;
+                }
             }
-        });
+        }
+
+        if (!success) {
+            throw lastError;
+        }
 
 
         res.send(`
