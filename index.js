@@ -18,7 +18,7 @@ if (isBotMode) {
     const BOT_TOKEN = process.env.BOT_TOKEN;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const BOT_NAME = process.env.BOT_NAME || "YASIN"; // ডিফল্ট নাম YASIN
-    const GEMINI_MODEL = 'gemini-3.5-flash';
+    const GEMINI_MODEL = 'gemini-1.5-flash';
 
     const bot = new TelegramBot(BOT_TOKEN, { polling: true });
     console.log(`${BOT_NAME} Bot started...`);
@@ -196,7 +196,11 @@ const HTML_TEMPLATE = `
 `;
 
 app.get('/', (req, res) => {
-    res.send(HTML_TEMPLATE);
+    if (isBotMode) {
+        res.send(`<div style="background-color: #030407; color: #4ade80; font-family: sans-serif; text-align: center; padding-top: 50px; min-height: 100vh;"><h1>🚀 Bot is Running Active</h1></div>`);
+    } else {
+        res.send(HTML_TEMPLATE);
+    }
 });
 
 
@@ -206,7 +210,10 @@ app.get('/', (req, res) => {
 
 app.post('/deploy', async (req, res) => {
     // No password required for deployment
-    const { botName, telegramKey, geminiKey, renderKey } = req.body;
+    const botName = req.body.botName?.trim();
+    const telegramKey = req.body.telegramKey?.trim();
+    const geminiKey = req.body.geminiKey?.trim();
+    const renderKey = req.body.renderKey?.trim();
     const githubRepo = 'https://github.com/yasinffx36-afk/Aura-FFX-Savar-Ai.git';
     
     if (!botName || !telegramKey || !geminiKey || !renderKey) {
