@@ -8,7 +8,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
+    const allowedOrigins = [
+        'https://devyasin.online',
+        'https://www.devyasin.online',
+        'https://devyasin.onrender.com'
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
+    } else {
+        // Fallback for direct requests or if you still want it semi-open, but restricting is better.
+        // If you want strictly these domains, don't set the header if not matched.
+    }
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     res.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
     if (req.method === 'OPTIONS') {
